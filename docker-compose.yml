@@ -1,5 +1,24 @@
 version: '3'
 services:
+  sports1:
+    image: sports-service
+    hostname: sports1-container
+    ports:
+      - "5000:5000"
+    networks:
+      - pad_reexam
+  sports2:
+    image: sports-service
+    ports:
+      - "5001:5000"
+  imgur1:
+    image: imgur-service
+    ports:
+      - "5003:5000"
+  imgur2:
+    image: imgur-service
+    ports:
+      - "5004:5000"
   prometheus:
     image: prom/prometheus
     volumes:
@@ -12,3 +31,21 @@ services:
       - ./datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
     ports:
       - "3000:3000"
+  sports-db:
+    image: postgres
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+        POSTGRES_PASSWORD: mysecretpassword
+        POSTGRES_USER: admin
+        POSTGRES_DB: sports_db
+    hostname: sports-db
+    networks:
+      - pad_reexam
+    volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d
+networks:
+  pad_reexam:
+    external:
+      name: pad_reexam
