@@ -39,7 +39,6 @@ def _insert_into_db(links):
         cur = conn.cursor()
 
         str_to_execute = 'INSERT INTO images (link) VALUES ' + ", ".join([f"('{link}')" for link in links]) + ";"
-        # str_to_execute = f"INSERT INTO images (link) VALUES ('loooool');"
         print(str_to_execute, flush=True)
         cur.execute(str_to_execute)
         conn.commit()

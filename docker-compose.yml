@@ -1,5 +1,11 @@
 version: '3'
 services:
+  api-gateway:
+    image: api-gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - pad_reexam
   sports1:
     image: sports-service
     hostname: sports1-container
@@ -9,18 +15,25 @@ services:
       - pad_reexam
   sports2:
     image: sports-service
+    hostname: sports2-container
     ports:
       - "5001:5000"
+    networks:
+      - pad_reexam
   imgur1:
     image: imgur-service
+    hostname: imgur1-container
     ports:
       - "5003:5000"
     networks:
       - pad_reexam
   imgur2:
     image: imgur-service
+    hostname: imgur2-container
     ports:
       - "5004:5000"
+    networks:
+      - pad_reexam
   prometheus:
     image: prom/prometheus
     volumes:

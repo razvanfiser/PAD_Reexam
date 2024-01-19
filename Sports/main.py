@@ -1,6 +1,6 @@
 from flask import Flask, jsonify
 from prometheus_client import Histogram, Counter, generate_latest, CONTENT_TYPE_LATEST
-from time import time
+from time import time, sleep
 import requests
 
 from config import config
