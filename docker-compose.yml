@@ -1,5 +1,12 @@
 version: '3'
 services:
+  redis:
+    image: redis
+    hostname: redis-container
+    ports:
+      - "6379:6379"
+    networks:
+      - pad_reexam
   api-gateway:
     image: api-gateway
     ports:

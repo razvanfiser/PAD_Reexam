@@ -9,6 +9,7 @@ COPY . .
 
 # Install the gorilla/mux package
 RUN go get -u github.com/gorilla/mux
+RUN go get -u github.com/go-redis/redis/v8
 
 # Build the Go API gateway executable
 RUN go build -o api-gateway
