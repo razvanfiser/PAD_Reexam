@@ -1,7 +1,8 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 from prometheus_client import Histogram, Counter, generate_latest, CONTENT_TYPE_LATEST
-from time import time
+from time import time, sleep
 import requests
+import asyncio
 
 from config import config
 import psycopg2
@@ -10,6 +11,7 @@ CLIENT_ID = "b986da479ce531b"
 SECRET = "027f7378b9e15c0aae455b292380a5bfba5ba71a"
 
 SERVICE_NAME = "Imgur"
+TIMEOUT_SECONDS = 5
 
 request_duration_histogram = Histogram(
     'http_request_duration_seconds',
@@ -20,6 +22,20 @@ request_duration_histogram = Histogram(
 view_metric = Counter('view', 'Page view', ["endpoint"])
 
 app = Flask(__name__)
+
+# async def timer_callback():
+#     # return jsonify({"Error": "Request timeout"}), 408
+#     raise TimeoutError("Request timed out")
+#
+# @app.before_request
+# async def timeout():
+#     await asyncio.sleep(TIMEOUT_SECONDS)
+#     await timer_callback()
+#
+# @app.errorhandler(TimeoutError)
+# def handle_timeout_error(error):
+#     # Custom response for timeout errors
+#     return jsonify({"Error": "Request timed out"}), 408
 
 @app.route('/metrics')
 def metrics():
@@ -83,6 +99,8 @@ def get_db():
     except (Exception, psycopg2.DatabaseError) as error:
         return jsonify({"Database Error": str(error)}), 500
 
+
+
 @app.route('/search')
 def search_for_term():
     start_time = time()
@@ -106,7 +124,6 @@ def search_for_term():
     request_duration_histogram.labels(service=SERVICE_NAME, endpoint='search_photo').observe(end_time - start_time)
     view_metric.labels(endpoint="search_photo").inc()
     return jsonify(out), response.status_code
-
 
 
 if __name__ == '__main__':

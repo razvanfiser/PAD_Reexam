@@ -1,5 +1,5 @@
 # Use the official Golang image as the base image
-FROM golang:1.20.13-alpine
+FROM golang:1.21-alpine
 
 # Set the working directory inside the container
 WORKDIR /go/src/app
@@ -10,6 +10,7 @@ COPY . .
 # Install the gorilla/mux package
 RUN go get -u github.com/gorilla/mux
 RUN go get -u github.com/go-redis/redis/v8
+RUN go get -u github.com/afex/hystrix-go/hystrix
 
 # Build the Go API gateway executable
 RUN go build -o api-gateway

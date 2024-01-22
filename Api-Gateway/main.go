@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,11 +10,10 @@ import (
 	"net/url"
 	"sync"
 	"time"
-	"context"
 
-	"github.com/gorilla/mux"
+	"github.com/afex/hystrix-go/hystrix"
 	"github.com/go-redis/redis/v8"
-
+	"github.com/gorilla/mux"
 )
 
 // RoundRobinLoadBalancer is a simple round-robin load balancer.
@@ -71,6 +71,15 @@ func (rc *RedisCache) GetCache(key string) (string, error) {
 	return rc.client.Get(context.Background(), key).Result()
 }
 
+func init() {
+	// Shared Hystrix configuration for both services
+	hystrix.ConfigureCommand("shared", hystrix.CommandConfig{
+		Timeout:               5000, // in milliseconds
+		MaxConcurrentRequests: 100,  // max number of concurrent requests
+		ErrorPercentThreshold: 25,   // error rate threshold percentage
+	})
+}
+
 func main() {
 	// Initialize Redis client
 	redisClient := redis.NewClient(&redis.Options{
@@ -95,12 +104,10 @@ func main() {
 	// Create a new router using gorilla/mux
 	router := mux.NewRouter()
 
-	// Define handlers for sports service
-	router.HandleFunc("/", createReverseProxyHandler(sportsService))
-	router.HandleFunc("/_getsportlist", createReverseProxyHandler(sportsService))
-
-	// Define handlers for imgur service
-	router.HandleFunc("/search", createCacheHandler(redisCache, createReverseProxyHandler(imgurService)))
+	// Update the sports and imgur service endpoints with Hystrix-enabled handlers
+	router.HandleFunc("/", createReverseProxyHandler(sportsService, "sports"))
+	router.HandleFunc("/_getsportlist", createReverseProxyHandler(sportsService, "sports"))
+	router.HandleFunc("/search", createCacheHandler(redisCache, createReverseProxyHandler(imgurService, "imgur")))
 
 	// Start the API gateway on port 8080
 	fmt.Println("API Gateway listening on :8080")
@@ -108,24 +115,43 @@ func main() {
 }
 
 // createReverseProxyHandler creates a reverse proxy handler for the given load balancer.
-func createReverseProxyHandler(lb *RoundRobinLoadBalancer) http.HandlerFunc {
+func createReverseProxyHandler(lb *RoundRobinLoadBalancer, serviceName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get the next server from the load balancer
-		target := lb.NextServer()
+		// Use Hystrix for circuit-breaking and timeout with the shared configuration
+		err := hystrix.Do("shared", func() error {
+			// Get the next server from the load balancer
+			target := lb.NextServer()
 
-		// Create a reverse proxy
-		proxy := httputil.NewSingleHostReverseProxy(target)
+			// Create a reverse proxy
+			proxy := httputil.NewSingleHostReverseProxy(target)
 
-		// Update the request URL to the target URL
-		r.URL.Host = target.Host
-		r.URL.Scheme = target.Scheme
-		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
-		r.Host = target.Host
+			// Update the request URL to the target URL
+			r.URL.Host = target.Host
+			r.URL.Scheme = target.Scheme
+			r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
+			r.Host = target.Host
 
-		// Serve the request using the reverse proxy
-		proxy.ServeHTTP(w, r)
+			// Serve the request using the reverse proxy
+			proxy.ServeHTTP(w, r)
+
+			return nil
+		}, nil)
+
+		// Check if the error is a CircuitError, which includes a timeout
+		if err != nil && err == hystrix.ErrTimeout {
+			// Set the HTTP status code to 408 (Request Timeout)
+			w.WriteHeader(http.StatusRequestTimeout)
+			fmt.Println("Hystrix circuit opened for", serviceName, "with error:", err)
+		} else if err != nil {
+			// For other errors, set the HTTP status code to 503 (Service Unavailable)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			// Log the error for further investigation
+			fmt.Println("Hystrix circuit opened for", serviceName, "with error:", err)
+		}
 	}
 }
+
+
 
 // createCacheHandler creates a handler that caches the result of the request to Redis.
 func createCacheHandler(cache *RedisCache, next http.HandlerFunc) http.HandlerFunc {
