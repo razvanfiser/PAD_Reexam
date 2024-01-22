@@ -75,7 +75,7 @@ func init() {
 	// Shared Hystrix configuration for both services
 	hystrix.ConfigureCommand("shared", hystrix.CommandConfig{
 		Timeout:               5000, // in milliseconds
-		MaxConcurrentRequests: 100,  // max number of concurrent requests
+		MaxConcurrentRequests: 4,  // max number of concurrent requests
 		ErrorPercentThreshold: 25,   // error rate threshold percentage
 	})
 }
