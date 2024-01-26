@@ -206,5 +206,7 @@ def get_players_by_id(sport_id):
     view_metric.labels(endpoint="players").inc()
     return jsonify(out), response.status_code
 
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
