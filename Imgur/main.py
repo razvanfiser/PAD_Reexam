@@ -23,20 +23,6 @@ view_metric = Counter('view', 'Page view', ["endpoint"])
 
 app = Flask(__name__)
 
-# async def timer_callback():
-#     # return jsonify({"Error": "Request timeout"}), 408
-#     raise TimeoutError("Request timed out")
-#
-# @app.before_request
-# async def timeout():
-#     await asyncio.sleep(TIMEOUT_SECONDS)
-#     await timer_callback()
-#
-# @app.errorhandler(TimeoutError)
-# def handle_timeout_error(error):
-#     # Custom response for timeout errors
-#     return jsonify({"Error": "Request timed out"}), 408
-
 @app.route('/metrics')
 def metrics():
     return generate_latest(), 200, {'Content-Type': CONTENT_TYPE_LATEST}
@@ -125,6 +111,21 @@ def search_for_term():
     view_metric.labels(endpoint="search_photo").inc()
     return jsonify(out), response.status_code
 
+@app.route('/tag/<string:tag>')
+def search_for_tag(tag):
+    start_time = time()
+    tagName, sort, window, page = tag, "top", "all", 1
+    url = f"https://api.imgur.com/3/gallery/t/{tagName}/{sort}/{window}/{page}"
+
+    headers = {
+        f"Authorization": f"Client-ID {CLIENT_ID}"
+    }
+
+    response = requests.get(url, headers=headers)
+    end_time = time()
+    request_duration_histogram.labels(service=SERVICE_NAME, endpoint='search_photo').observe(end_time - start_time)
+    view_metric.labels(endpoint="search_photo").inc()
+    return response.json(), response.status_code
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
