@@ -107,7 +107,17 @@ func main() {
 	// Update the sports and imgur service endpoints with Hystrix-enabled handlers
 	router.HandleFunc("/", createReverseProxyHandler(sportsService, "sports"))
 	router.HandleFunc("/_getsportlist", createReverseProxyHandler(sportsService, "sports"))
+	router.HandleFunc("/sports/{sport_id:[0-9]+}", createReverseProxyHandler(sportsService, "sports"))
+
+	router.HandleFunc("/events/{sport_id:[0-9]+}/live", createReverseProxyHandler(sportsService, "sports"))
+	router.HandleFunc("/events/date/{date}", createReverseProxyHandler(sportsService, "sports"))
+	router.HandleFunc("/teams/{sport_id:[0-9]+}", createReverseProxyHandler(sportsService, "sports"))
+	router.HandleFunc("/players/{sport_id:[0-9]+}", createReverseProxyHandler(sportsService, "sports"))
+
 	router.HandleFunc("/search", createCacheHandler(redisCache, createReverseProxyHandler(imgurService, "imgur")))
+	router.HandleFunc("/tag/{tag:[0-9]+}", createReverseProxyHandler(imgurService, "imgur"))
+	router.HandleFunc("/album", createReverseProxyHandler(imgurService, "imgur"))
+	router.HandleFunc("/upload", createReverseProxyHandler(imgurService, "imgur"))
 
 	// Start the API gateway on port 8080
 	fmt.Println("API Gateway listening on :8080")
@@ -121,8 +131,6 @@ func createReverseProxyHandler(lb *RoundRobinLoadBalancer, serviceName string) h
 		err := hystrix.Do("shared", func() error {
 			// Get the next server from the load balancer
 			target := lb.NextServer()
-
-			// Create a reverse proxy
 			proxy := httputil.NewSingleHostReverseProxy(target)
 
 			// Update the request URL to the target URL
