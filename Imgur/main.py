@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, abort
 from prometheus_client import Histogram, Counter, generate_latest, CONTENT_TYPE_LATEST
 from time import time, sleep
+from datetime import datetime
 import requests
 import asyncio
 
@@ -22,6 +23,80 @@ request_duration_histogram = Histogram(
 view_metric = Counter('view', 'Page view', ["endpoint"])
 
 app = Flask(__name__)
+
+def _check_upstream():
+    imgur_api_url = "https://api.imgur.com/3/gallery/hot/viral/0.json"
+    headers = {
+        f"Authorization": f"Client-ID {CLIENT_ID}"
+    }
+
+    try:
+        start_time = time()
+        response = requests.get(imgur_api_url, headers=headers)
+        end_time = time()
+        response_time = end_time - start_time
+        return response.status_code, response_time
+    except Exception as e:
+        return 500, None
+
+def _check_database():
+    conn = None
+    try:
+        # read connection parameters
+        params = config()
+
+        # connect to the PostgreSQL server
+        print('Connecting to the PostgreSQL database...')
+        conn = psycopg2.connect(**params)
+
+        # create a cursor
+        cur = conn.cursor()
+
+        start_time = time()
+        cur.execute(f'''SELECT version();''')
+
+        # display the PostgreSQL database server version
+        db_version = cur.fetchall()
+        end_time = time()
+        response_time = end_time - start_time
+        cur.close()
+        if conn is not None:
+            conn.close()
+            print('Database connection closed.')
+        return 200, response_time
+
+        # close the communication with the PostgreSQL
+    except:
+        return 500, None
+
+@app.route("/status")
+def status():
+    def check_code(code):
+        if code == 200:
+            return "ok"
+        return "error"
+
+    db = _check_database()
+    upstream = _check_upstream()
+    service_status = "ok" if db[0] == 200 and upstream[0] == 200 else "error"
+    response = {
+        "status": service_status,
+        "timestamp": datetime.utcnow().isoformat(),
+        "components": [
+            {
+                "name": "Imgur",
+                "service_status": check_code(upstream[0]),
+                "request_time": upstream[1]
+            },
+            {
+                "name": "Database",
+                "service_status": check_code(db[0]),
+                "request_time": db[1]
+            }
+        ]
+
+    }
+    return jsonify(response)
 
 @app.route('/metrics')
 def metrics():
@@ -123,9 +198,55 @@ def search_for_tag(tag):
 
     response = requests.get(url, headers=headers)
     end_time = time()
-    request_duration_histogram.labels(service=SERVICE_NAME, endpoint='search_photo').observe(end_time - start_time)
-    view_metric.labels(endpoint="search_photo").inc()
+    request_duration_histogram.labels(service=SERVICE_NAME, endpoint='tags').observe(end_time - start_time)
+    view_metric.labels(endpoint="tags").inc()
     return response.json(), response.status_code
+
+@app.route('/album')
+def create_album():
+    start_time = time()
+    url = 'https://api.imgur.com/3/album'
+    headers = {
+        f"Authorization": f"Client-ID {CLIENT_ID}"
+    }
+
+    data = {
+        'title': request.form.get("title"),
+        'description': request.form.get("description"),
+    }
+
+    response = requests.post(url, headers=headers, data=data)
+
+    end_time = time()
+    request_duration_histogram.labels(service=SERVICE_NAME, endpoint='album').observe(end_time - start_time)
+    view_metric.labels(endpoint="album").inc()
+    return response.json(), response.status_code
+
+@app.route('/upload')
+def upload_image():
+    start_time = time()
+    url = 'https://api.imgur.com/3/image'
+    headers = {
+        f"Authorization": f"Client-ID {CLIENT_ID}"
+    }
+
+    data = {
+        'image': request.form.get("image"),
+        'album': request.form.get("album"),
+        'type': "url",
+        'name': request.form.get("name"),
+        'title': request.form.get("description"),
+        'description': request.form.get("description"),
+        'disable_audio': 1
+    }
+
+    response = requests.post(url, headers=headers, data=data)
+
+    end_time = time()
+    request_duration_histogram.labels(service=SERVICE_NAME, endpoint='upload').observe(end_time - start_time)
+    view_metric.labels(endpoint="upload").inc()
+    return response.json(), response.status_code
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

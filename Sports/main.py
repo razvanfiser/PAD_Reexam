@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from prometheus_client import Histogram, Counter, generate_latest, CONTENT_TYPE_LATEST
 from time import time, sleep
+from datetime import datetime
 import requests
 
 from config import config
@@ -16,6 +17,81 @@ request_duration_histogram = Histogram(
 )
 
 view_metric = Counter('view', 'Page view', ["endpoint"])
+
+def _check_upstream():
+    try:
+        url = "https://sportscore1.p.rapidapi.com/sports"
+
+        headers = {
+            "X-RapidAPI-Key": "6e297b3aa8mshee38d1a1c1c6f1ep11483ejsn6602bee3a178",
+            "X-RapidAPI-Host": "sportscore1.p.rapidapi.com"
+        }
+        start_time = time()
+        response = requests.get(url, headers=headers)
+        end_time = time()
+        response_time = end_time-start_time
+        return response.status_code, response_time
+    except Exception as e:
+        return 500, None
+
+def _check_database():
+    conn = None
+    try:
+        # read connection parameters
+        params = config()
+
+        # connect to the PostgreSQL server
+        print('Connecting to the PostgreSQL database...')
+        conn = psycopg2.connect(**params)
+
+        # create a cursor
+        cur = conn.cursor()
+
+        start_time = time()
+        cur.execute(f'''SELECT version();''')
+
+        # display the PostgreSQL database server version
+        db_version = cur.fetchall()
+        end_time = time()
+        response_time = end_time - start_time
+        cur.close()
+        if conn is not None:
+            conn.close()
+            print('Database connection closed.')
+        return 200, response_time
+
+        # close the communication with the PostgreSQL
+    except:
+        return 500, None
+
+@app.route("/status")
+def status():
+    def check_code(code):
+        if code == 200:
+            return "ok"
+        return "error"
+
+    db = _check_database()
+    upstream = _check_upstream()
+    service_status = "ok" if db[0] == 200 and upstream[0] == 200 else "error"
+    response = {
+        "status": service_status,
+        "timestamp": datetime.utcnow().isoformat(),
+        "components": [
+            {
+                "name": "SportScore",
+                "service_status": check_code(upstream[0]),
+                "request_time": upstream[1]
+            },
+            {
+                "name": "Database",
+                "service_status": check_code(db[0]),
+                "request_time": db[1]
+            }
+        ]
+
+    }
+    return jsonify(response)
 
 @app.route('/_getsportlist')
 def _get_sport_list():
