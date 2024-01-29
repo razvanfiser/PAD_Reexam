@@ -5,5 +5,7 @@ scrape_configs:
       - targets:
         - host.docker.internal:5000
         - host.docker.internal:5001
+        - host.docker.internal:5002
         - host.docker.internal:5003
         - host.docker.internal:5004
+        - host.docker.internal:5005

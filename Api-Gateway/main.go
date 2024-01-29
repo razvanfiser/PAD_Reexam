@@ -96,11 +96,13 @@ func main() {
 	sportsService := NewRoundRobinLoadBalancer([]string{
 		"http://sports1-container.pad_reexam:5000",
 		"http://sports2-container.pad_reexam:5000",
+		"http://sports3-container.pad_reexam:5000",
 	})
 
 	imgurService := NewRoundRobinLoadBalancer([]string{
 		"http://imgur1-container.pad_reexam:5000",
 		"http://imgur2-container.pad_reexam:5000",
+		"http://imgur3-container.pad_reexam:5000",
 	})
 
 	// Create a new router using gorilla/mux
