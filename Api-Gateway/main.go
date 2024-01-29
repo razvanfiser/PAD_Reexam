@@ -125,9 +125,41 @@ func main() {
 	router.HandleFunc("/images/teams/{sport_id:[0-9]+}", createImagesPlayersHandler(sportsService, imgurService, redisCache))
 	router.HandleFunc("/images/events/{sport_id:[0-9]+}/live", createImagesPlayersHandler(sportsService, imgurService, redisCache))
 
+	router.HandleFunc("/status", createStatusHandler(sportsService, imgurService))
+
+
 	// Start the API gateway on port 8080
 	fmt.Println("API Gateway listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func createStatusHandler(sportsLB *RoundRobinLoadBalancer, imgurLB *RoundRobinLoadBalancer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Make requests to the /status endpoints of imgur and sports services
+		sportsStatus, err1 := makeProxyRequest(sportsLB, r, "/status")
+		imgurStatus, err2 := makeProxyRequest(imgurLB, r, "/status")
+
+		// Check for errors in making the requests
+		//if err1 != nil || err2 != nil {
+		//	// Handle errors (e.g., return an error response)
+		//	w.WriteHeader(http.StatusInternalServerError)
+		//	w.Write([]byte("Error fetching status from services"))
+		//	return
+		//}
+		if err1 != nil {
+			sportsStatus = "Server not responding"
+		}
+		if err2 != nil {
+			imgurStatus = "Server not responding"
+		}
+
+		// Aggregate the results into a JSON-format response
+		statusResponse := fmt.Sprintf("{\"sports\": %s, \"imgur\": %s}", sportsStatus, imgurStatus)
+
+		// Set the content type and write the response
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(statusResponse))
+	}
 }
 
 // createReverseProxyHandler creates a reverse proxy handler for the given load balancer.
@@ -177,51 +209,67 @@ var sportNameMapping = map[int]string{
 
 func createImagesPlayersHandler(sportsLB *RoundRobinLoadBalancer, imgurLB *RoundRobinLoadBalancer, cache *RedisCache) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		initPath := r.URL.Path
-		// Extract sport_id from the URL parameters
-		vars := mux.Vars(r)
-		sportID, err := strconv.Atoi(vars["sport_id"])
-		if err != nil {
-			// Handle error (e.g., invalid sport_id)
-			http.Error(w, "Invalid sport_id", http.StatusBadRequest)
-			return
+		err := hystrix.Do("shared", func() error {
+			initPath := r.URL.Path
+			// Extract sport_id from the URL parameters
+			vars := mux.Vars(r)
+			sportID, err := strconv.Atoi(vars["sport_id"])
+			if err != nil {
+				// Handle error (e.g., invalid sport_id)
+				http.Error(w, "Invalid sport_id", http.StatusBadRequest)
+				//return
+			}
+
+			// Map sport_id to sport name
+			sportName, ok := sportNameMapping[sportID]
+			if !ok {
+				// Handle error (e.g., sport_id not found in the mapping)
+				http.Error(w, "Sport not found", http.StatusNotFound)
+				//return
+			}
+
+			//sportPath := fmt.Sprintf("/players/%d", sportID)
+			sportPath := strings.Split(initPath, "/images")[1]
+			// Make a request to "/players/{sport_id:[0-9]+}" in the sports service
+			playersURL := sportPath
+			sportsResponse, err := makeProxyRequest(sportsLB, r, playersURL)
+			if err != nil {
+				// Handle error
+				http.Error(w, "Error fetching players data", http.StatusInternalServerError)
+				//return
+			}
+
+			query := url.Values{}
+			query.Add("q", sportName)
+			path := "/search"
+			imgurURL := path + "?" + query.Encode()
+			imgurResponse, err := makeProxyRequest(imgurLB, r, imgurURL)
+			if err != nil {
+				// Handle error
+				http.Error(w, "Error fetching imgur data", http.StatusInternalServerError)
+				//return
+			}
+
+			result := fmt.Sprintf("{\"sports\": %s, \"imgur\": %s}", sportsResponse, imgurResponse)
+
+			// Set the content type and write the response
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(result))
+
+			return nil
+		}, nil)
+
+		// Check if the error is a CircuitError, which includes a timeout
+		if err != nil && err == hystrix.ErrTimeout {
+			// Set the HTTP status code to 408 (Request Timeout)
+			w.WriteHeader(http.StatusRequestTimeout)
+			fmt.Println("Hystrix circuit opened for API gateway with error:", err)
+		} else if err != nil {
+			// For other errors, set the HTTP status code to 503 (Service Unavailable)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			// Log the error for further investigation
+			fmt.Println("Hystrix circuit opened forAPI gateway with error:", err)
 		}
-
-		// Map sport_id to sport name
-		sportName, ok := sportNameMapping[sportID]
-		if !ok {
-			// Handle error (e.g., sport_id not found in the mapping)
-			http.Error(w, "Sport not found", http.StatusNotFound)
-			return
-		}
-
-		//sportPath := fmt.Sprintf("/players/%d", sportID)
-		sportPath := strings.Split(initPath, "/images")[1]
-		// Make a request to "/players/{sport_id:[0-9]+}" in the sports service
-		playersURL := sportPath
-		sportsResponse, err := makeProxyRequest(sportsLB, r, playersURL)
-		if err != nil {
-			// Handle error
-			http.Error(w, "Error fetching players data", http.StatusInternalServerError)
-			return
-		}
-
-		query := url.Values{}
-		query.Add("q", sportName)
-		path := "/search"
-		imgurURL := path + "?" + query.Encode()
-		imgurResponse, err := makeProxyRequest(imgurLB, r, imgurURL)
-		if err != nil {
-			// Handle error
-			http.Error(w, "Error fetching imgur data", http.StatusInternalServerError)
-			return
-		}
-
-		result := fmt.Sprintf("{\"sports\": %s, \"imgur\": %s}", sportsResponse, imgurResponse)
-
-		// Set the content type and write the response
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(result))
 	}
 }
 
