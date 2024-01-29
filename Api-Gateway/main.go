@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -119,6 +121,10 @@ func main() {
 	router.HandleFunc("/album", createReverseProxyHandler(imgurService, "imgur"))
 	router.HandleFunc("/upload", createReverseProxyHandler(imgurService, "imgur"))
 
+	router.HandleFunc("/images/players/{sport_id:[0-9]+}", createImagesPlayersHandler(sportsService, imgurService, redisCache))
+	router.HandleFunc("/images/teams/{sport_id:[0-9]+}", createImagesPlayersHandler(sportsService, imgurService, redisCache))
+	router.HandleFunc("/images/events/{sport_id:[0-9]+}/live", createImagesPlayersHandler(sportsService, imgurService, redisCache))
+
 	// Start the API gateway on port 8080
 	fmt.Println("API Gateway listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
@@ -159,7 +165,104 @@ func createReverseProxyHandler(lb *RoundRobinLoadBalancer, serviceName string) h
 	}
 }
 
+var sportNameMapping = map[int]string{
+	1: "football",
+	2: "tennis",
+	3: "basketball",
+	4: "ice+hockey",
+	5: "volleyball",
+	6: "handball",
+	// Add more mappings as needed
+}
 
+func createImagesPlayersHandler(sportsLB *RoundRobinLoadBalancer, imgurLB *RoundRobinLoadBalancer, cache *RedisCache) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		initPath := r.URL.Path
+		// Extract sport_id from the URL parameters
+		vars := mux.Vars(r)
+		sportID, err := strconv.Atoi(vars["sport_id"])
+		if err != nil {
+			// Handle error (e.g., invalid sport_id)
+			http.Error(w, "Invalid sport_id", http.StatusBadRequest)
+			return
+		}
+
+		// Map sport_id to sport name
+		sportName, ok := sportNameMapping[sportID]
+		if !ok {
+			// Handle error (e.g., sport_id not found in the mapping)
+			http.Error(w, "Sport not found", http.StatusNotFound)
+			return
+		}
+
+		//sportPath := fmt.Sprintf("/players/%d", sportID)
+		sportPath := strings.Split(initPath, "/images")[1]
+		// Make a request to "/players/{sport_id:[0-9]+}" in the sports service
+		playersURL := sportPath
+		sportsResponse, err := makeProxyRequest(sportsLB, r, playersURL)
+		if err != nil {
+			// Handle error
+			http.Error(w, "Error fetching players data", http.StatusInternalServerError)
+			return
+		}
+
+		query := url.Values{}
+		query.Add("q", sportName)
+		path := "/search"
+		imgurURL := path + "?" + query.Encode()
+		imgurResponse, err := makeProxyRequest(imgurLB, r, imgurURL)
+		if err != nil {
+			// Handle error
+			http.Error(w, "Error fetching imgur data", http.StatusInternalServerError)
+			return
+		}
+
+		result := fmt.Sprintf("{\"sports\": %s, \"imgur\": %s}", sportsResponse, imgurResponse)
+
+		// Set the content type and write the response
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(result))
+	}
+}
+
+// makeProxyRequest is a helper function to make a proxy request using Hystrix.
+func makeProxyRequest(lb *RoundRobinLoadBalancer, r *http.Request, targetURL string) (string, error) {
+	var result string
+
+	// Use Hystrix for circuit-breaking and timeout with the shared configuration
+	err := hystrix.Do("shared", func() error {
+		// Get the next server from the load balancer
+		target := lb.NextServer()
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		// Update the request URL to the target URL
+
+		splitTargetURL := strings.Split(targetURL, "?")
+		r.URL.Path = splitTargetURL[0]
+		r.URL.Host = target.Host
+		r.URL.Scheme = target.Scheme
+		if len(splitTargetURL) > 1 {
+			r.URL.RawQuery = splitTargetURL[1]
+		}
+		r.Header.Set("X-Forwarded-Host", r.Header.Get("Host"))
+		r.Header.Set("Content-Type", "application/json")
+		r.Host = target.Host
+
+		// Capture the response to get the result
+		recorder := httptest.NewRecorder()
+		proxy.ServeHTTP(recorder, r)
+
+		// Convert the recorded response to a string
+		result = recorder.Body.String()
+
+		return nil
+	}, nil)
+
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
+}
 
 // createCacheHandler creates a handler that caches the result of the request to Redis.
 func createCacheHandler(cache *RedisCache, next http.HandlerFunc) http.HandlerFunc {
