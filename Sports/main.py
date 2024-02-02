@@ -282,7 +282,10 @@ def get_players_by_id(sport_id):
     view_metric.labels(endpoint="players").inc()
     return jsonify(out), response.status_code
 
-
+@app.route("/sports/timeout")
+def timeout():
+    sleep(6)
+    return "Oops! No timeout!", 200
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')

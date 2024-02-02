@@ -117,11 +117,13 @@ func main() {
 	router.HandleFunc("/events/date/{date}", createReverseProxyHandler(sportsService, "sports"))
 	router.HandleFunc("/teams/{sport_id:[0-9]+}", createReverseProxyHandler(sportsService, "sports"))
 	router.HandleFunc("/players/{sport_id:[0-9]+}", createReverseProxyHandler(sportsService, "sports"))
+	router.HandleFunc("/sports/timeout", createReverseProxyHandler(sportsService, "sports"))
 
 	router.HandleFunc("/search", createCacheHandler(redisCache, createReverseProxyHandler(imgurService, "imgur")))
 	router.HandleFunc("/tag/{tag:[0-9]+}", createReverseProxyHandler(imgurService, "imgur"))
 	router.HandleFunc("/album", createReverseProxyHandler(imgurService, "imgur"))
 	router.HandleFunc("/upload", createReverseProxyHandler(imgurService, "imgur"))
+	router.HandleFunc("/imgur/timeout", createReverseProxyHandler(imgurService, "imgur"))
 
 	router.HandleFunc("/images/players/{sport_id:[0-9]+}", createImagesPlayersHandler(sportsService, imgurService, redisCache))
 	router.HandleFunc("/images/teams/{sport_id:[0-9]+}", createImagesPlayersHandler(sportsService, imgurService, redisCache))
@@ -189,6 +191,7 @@ func createReverseProxyHandler(lb *RoundRobinLoadBalancer, serviceName string) h
 		if err != nil && err == hystrix.ErrTimeout {
 			// Set the HTTP status code to 408 (Request Timeout)
 			w.WriteHeader(http.StatusRequestTimeout)
+			w.Write([]byte("Request Timeout"))
 			fmt.Println("Hystrix circuit opened for", serviceName, "with error:", err)
 		} else if err != nil {
 			// For other errors, set the HTTP status code to 503 (Service Unavailable)

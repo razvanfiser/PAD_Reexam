@@ -247,6 +247,10 @@ def upload_image():
     view_metric.labels(endpoint="upload").inc()
     return response.json(), response.status_code
 
+@app.route("/imgur/timeout")
+def timeout():
+    sleep(6)
+    return "Oops! No timeout!", 200
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
