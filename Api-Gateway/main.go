@@ -120,7 +120,7 @@ func main() {
 	router.HandleFunc("/sports/timeout", createReverseProxyHandler(sportsService, "sports"))
 
 	router.HandleFunc("/search", createCacheHandler(redisCache, createReverseProxyHandler(imgurService, "imgur")))
-	router.HandleFunc("/tag/{tag:[0-9]+}", createReverseProxyHandler(imgurService, "imgur"))
+	router.HandleFunc("/tag/{tag}", createReverseProxyHandler(imgurService, "imgur"))
 	router.HandleFunc("/album", createReverseProxyHandler(imgurService, "imgur"))
 	router.HandleFunc("/upload", createReverseProxyHandler(imgurService, "imgur"))
 	router.HandleFunc("/imgur/timeout", createReverseProxyHandler(imgurService, "imgur"))
