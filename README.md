@@ -3,8 +3,10 @@
 _______
 ## How to Run this Project
 1. Pull the images from this page: https://hub.docker.com/repositories/razvanfiser;
-2. Clone this repository and run `docker-compose up -d` from within it;
-3. Wait a couple of minutes until all containers are STARTED;
+2. Clone this repository and change your current directory to it;
+3. Run the following command: `docker network create pad_reexam`;
+4. After the network has been created, run `docker-compose up -d`;
+5. Wait a couple of minutes until all containers are STARTED;
 
 ## How to Test This Project
 
