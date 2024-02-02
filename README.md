@@ -8,6 +8,9 @@ _______
 4. After the network has been created, run `docker-compose up -d`;
 5. Wait a couple of minutes until all containers are STARTED;
 
+## Postman Collection
+The postman collection for this Project can be found in this repo and is called `PAD_Reexam.postman_collection.json`.
+
 ## How to Test This Project
 
 * ### Separated Database for each service:

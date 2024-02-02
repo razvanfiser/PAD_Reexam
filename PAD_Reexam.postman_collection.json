@@ -1,0 +1,675 @@
+{
+	"info": {
+		"_postman_id": "74506d5d-1e57-4793-8796-9dddeed74fb9",
+		"name": "PAD_Reexam",
+		"description": "PAD Reexamination task by Răzvan Fișer FAF 203.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "27577776"
+	},
+	"item": [
+		{
+			"name": "Api-Gateway",
+			"item": [
+				{
+					"name": "Live Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/events/1/live",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"events",
+								"1",
+								"live"
+							]
+						},
+						"description": "Gets a list of live events of a certain sport. Replace \"1\" in the request path by any number 1 through 6 to change the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Events by Date",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/events/date/2024-01-23",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"events",
+								"date",
+								"2024-01-23"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Teams by Sport",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/teams/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"teams",
+								"1"
+							]
+						},
+						"description": "Replace \"1\" in the request path by any number 1 through 6 to change the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Players by Sport",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/players/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"players",
+								"1"
+							]
+						},
+						"description": "Replace \"1\" in the request path by any number 1 through 6 to change the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Search for Image on Imgur",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/search?q=football",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "football"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tag Metadata on Imgur",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/tag/meme",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"tag",
+								"meme"
+							]
+						},
+						"description": "Get metadata for a certain tag from Imgur. Replace \"football\" by any other tag."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Album",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Football pics",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Empty album to be filled with pictured and Dank Memes about football :DDD",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8080/album",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"album"
+							]
+						},
+						"description": "Returns a deletehash which can be then used to upload images to this album on Imgur. (use \"album\" key)"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload an image to Imgur",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"value": "https://i.imgur.com/WDjI0fk.gif",
+									"type": "text"
+								},
+								{
+									"key": "album",
+									"value": "7oN8mOyvxODWwni",
+									"type": "text"
+								},
+								{
+									"key": "name",
+									"value": "WDjI0fk.gif",
+									"type": "text"
+								},
+								{
+									"key": "title",
+									"value": "Ebic Football Gif",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Ebic Football Gif :DDDD",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8080/upload",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"upload"
+							]
+						},
+						"description": "Uploads an image to Imgur. You can change the \"album\" key with a deletehash generated by the \"Create Album\" request."
+					},
+					"response": []
+				},
+				{
+					"name": "Aggreg Players by Sport",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/images/players/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"images",
+								"players",
+								"1"
+							]
+						},
+						"description": "Returns both data on players and relevant images depending on the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Aggreg Teams by Sport",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/images/teams/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"images",
+								"teams",
+								"1"
+							]
+						},
+						"description": "Returns both data on teams and relevant images depending on the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Aggreg Live Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/images/events/1/live",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"images",
+								"events",
+								"1",
+								"live"
+							]
+						},
+						"description": "Returns both data on live events and relevant images depending on the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Sports Service Timeout",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/sports/timeout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"sports",
+								"timeout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Imgur Service Timeout",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/imgur/timeout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"imgur",
+								"timeout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/status",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"status"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "The Api-Gateway for this project. Contains endpoints from both Imgur- and SportScore services aswell as aggregated endpoints from both of them."
+		},
+		{
+			"name": "Imgur Service",
+			"item": [
+				{
+					"name": "Search for Image on Imgur",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5003/search?q=football",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5003",
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "football"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Tag Metadata on Imgur",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5003/tag/football",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5003",
+							"path": [
+								"tag",
+								"football"
+							]
+						},
+						"description": "Get metadata for a certain tag from Imgur. Replace \"football\" by any other tag."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Album",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Football pics",
+									"type": "text"
+								},
+								{
+									"key": "desciption",
+									"value": "Pics of football",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5003/album",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5003",
+							"path": [
+								"album"
+							]
+						},
+						"description": "Returns a deletehash which can be then used to upload images to this album on Imgur. (use \"album\" key)"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload an image to Imgur",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"value": "https://i.imgur.com/WDjI0fk.gif",
+									"type": "text"
+								},
+								{
+									"key": "album",
+									"value": "7oN8mOyvxODWwni",
+									"type": "text"
+								},
+								{
+									"key": "name",
+									"value": "WDjI0fk.gif",
+									"type": "text"
+								},
+								{
+									"key": "title",
+									"value": "Epic football trick",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Just an epic football trick",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5003/upload",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5003",
+							"path": [
+								"upload"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5003/status",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5003",
+							"path": [
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Database",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5003/get_db",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5003",
+							"path": [
+								"get_db"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "The Api-Gateway for this project. Contains endpoints from both Imgur- and SportScore services aswell as aggregated endpoints from both of them."
+		},
+		{
+			"name": "SportScore Service",
+			"item": [
+				{
+					"name": "Live Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/events/1/live",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"events",
+								"1",
+								"live"
+							]
+						},
+						"description": "Gets a list of live events of a certain sport. Replace \"1\" in the request path by any number 1 through 6 to change the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Events by Date",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/events/date/2024-01-23",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"events",
+								"date",
+								"2024-01-23"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Teams by Sport",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/teams/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"teams",
+								"1"
+							]
+						},
+						"description": "Replace \"1\" in the request path by any number 1 through 6 to change the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Players by Sport",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/players/1",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"players",
+								"1"
+							]
+						},
+						"description": "Replace \"1\" in the request path by any number 1 through 6 to change the sport."
+					},
+					"response": []
+				},
+				{
+					"name": "Name of Sport by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/sports/2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"sports",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/status",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"status"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "The Api-Gateway for this project. Contains endpoints from both Imgur- and SportScore services aswell as aggregated endpoints from both of them."
+		}
+	]
+}
