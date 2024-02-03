@@ -32,10 +32,18 @@ in response after **5 seconds**. The underlying mechanism behind this should wor
 for any other endpoint if it takes more time than usual for some reason;
 
 * ### Concurrent tasks limit:
-    If you are on Windows, simply run the following command:
+    If you are on **Windows**, simply run the following command:
 `for i in {1..10}; do curl -s http://localhost:8080/players/1 & done`. This will send
 a bunch of simultaneous curl requests to this specific endpoint and you should see that not all
 of them are served. You can also check the **Docker Logs** on the **api-gateway** container for more info.
+If you are using **Linux** or **macOS**, please use: 
+```
+for i in $(seq 1 10); do
+  curl -s http://localhost:8080/players/1 &
+done
+
+wait
+```
 
 * ### Business Logic and Aggregated Endpoints
     You can check the Postman collection for details on what each endpoint does, but most of them are
